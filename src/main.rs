@@ -1,6 +1,3 @@
-use winit:: {
-    event::{Event, WindowEvent},
-};
 use glium::Surface;
 
 #[macro_use]
@@ -15,7 +12,7 @@ implement_vertex!(Vertex, position);
 fn main() {
 
     //Create Event Loop with winit crate and window with glium glutin re-export crate
-    let event_loop = winit::event_loop::EventLoopBuilder::new().build();
+    let event_loop = glium::winit::event_loop::EventLoopBuilder::new().build().unwrap();
     let (_window, display) = glium::backend::glutin::SimpleWindowBuilder::new().build(&event_loop);
     
     // //Start drawing within the window
@@ -71,19 +68,14 @@ fn main() {
     target.finish().unwrap();
     
     //Set some callbacks for the Event Loop 
-    let _ = event_loop.run(move |event, _, control_flow| {
-        control_flow.set_poll();
-
+    let _ = event_loop.run(move |event, window_target| {
         match event {
-           Event::WindowEvent {
-                event: WindowEvent::CloseRequested,
-                ..
-            } => {
-                println!("The close button was pressed; stopping");
-                control_flow.set_exit();
-            }
-            _ => ()
-        }
+                glium::winit::event::Event::WindowEvent { event, .. } => match event {
+                glium::winit::event::WindowEvent::CloseRequested => window_target.exit(),
+                _ => (),
+                },
+                _ => (),
+            };
     });
 }
 
