@@ -13,7 +13,7 @@ fn main() {
 
     //Create Event Loop with winit crate and window with glium glutin re-export crate
     let event_loop = glium::winit::event_loop::EventLoopBuilder::new().build().unwrap();
-    let (_window, display) = glium::backend::glutin::SimpleWindowBuilder::new().build(&event_loop);
+    let (window, display) = glium::backend::glutin::SimpleWindowBuilder::new().build(&event_loop);
     
     // //Start drawing within the window
     let mut frame = display.draw();
@@ -41,8 +41,12 @@ fn main() {
 
         in vec2 position;
 
+        uniform float x;
+
         void main() {
-            gl_Position = vec4(position, 0.0, 1.0);
+            vec2 pos = position;
+            pos.x += x;
+            gl_Position = vec4(pos, 0.0, 1.0);
         }
     "#;
 
@@ -59,23 +63,41 @@ fn main() {
 
     //Send shaders to GLIUM wrappers for OpenGL
     let program = glium::Program::from_source(&display, vertex_shader_src, fragment_shader_src, None).unwrap();
+   
+    // Set uniform here to be used in the shader code for animating the triangle.
+    // The naiive approach would be to instead handle t in the event loop to update the vertex but that does not make much sense,
+    // We can place the handling and animating of the vertexes in different positions of the animations in the shader code to push that workload to the GPU
+    let mut t: f32 = 0.0;
 
-    //Draw triangles
-    let mut target = display.draw();
-    target.clear_color(0.0, 0.0, 1.0, 1.0);
-    target.draw(&vertex_buffer, &indices, &program, &glium::uniforms::EmptyUniforms,
-            &Default::default()).unwrap();
-    target.finish().unwrap();
-    
-    //Set some callbacks for the Event Loop 
+    //Set some callbacks for the Event Loop, this code basically handles the event loop for the window 
     let _ = event_loop.run(move |event, window_target| {
         match event {
-                glium::winit::event::Event::WindowEvent { event, .. } => match event {
+            glium::winit::event::Event::WindowEvent { event, .. } => match event {
                 glium::winit::event::WindowEvent::CloseRequested => window_target.exit(),
-                _ => (),
+                glium::winit::event::WindowEvent::Resized(window_size) => {
+                    display.resize(window_size.into());
                 },
+                glium::winit::event::WindowEvent::RedrawRequested => {
+                    //Draw code
+                    t += 0.02;
+                    let x_off = t.sin() * 0.5;
+
+                    let mut target = display.draw();
+                    target.clear_color(0.0, 0.0, 1.0, 1.0);
+                    
+                    // We pass t here to the vertex shader using a uniform
+                    // A uniform is a global variable whose value is set when we draw by passing its value to the draw function.
+                    // The easiest way to do so is by using the uniform! macro
+                    target.draw(&vertex_buffer, &indices, &program, &uniform! { x: x_off }, &Default::default()).unwrap();
+                    target.finish().unwrap();
+                }
                 _ => (),
-            };
+            },
+            glium::winit::event::Event::AboutToWait => {
+                window.request_redraw();
+            }
+            _ => (),
+        };
     });
 }
 
