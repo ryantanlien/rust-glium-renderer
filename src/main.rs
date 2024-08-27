@@ -9,6 +9,7 @@ struct Vertex {
 }
 implement_vertex!(Vertex, position);
 
+// Note: Remember that matrices in OpenGL are in column-major order
 fn main() {
 
     //Create Event Loop with winit crate and window with glium glutin re-export crate
@@ -29,24 +30,24 @@ fn main() {
     let vertex3 = Vertex { position: [0.5, -0.25] };
     let shape = vec![vertex1, vertex2, vertex3];
 
-    //Send vertexes to vertex buffer for faster access by GPU
+    // Send vertexes to vertex buffer for faster access by GPU
     let vertex_buffer = glium::VertexBuffer::new(&display, &shape).unwrap();
 
-    //Set rendering type for vertices
+    // Set rendering type for vertices
     let indices = glium::index::NoIndices(glium::index::PrimitiveType::TrianglesList);
 
-    //Set Vertex Shader, ideally should be located in it's own file
+    // Set Vertex Shader, ideally should be located in it's own file
+    // Send matrices to vertex shader via uniforms
     let vertex_shader_src = r#"
         #version 140
 
         in vec2 position;
 
-        uniform float x;
+        uniform mat4 matrix;
 
         void main() {
             vec2 pos = position;
-            pos.x += x;
-            gl_Position = vec4(pos, 0.0, 1.0);
+            gl_Position = matrix * vec4(pos, 0.0, 1.0);
         }
     "#;
 
@@ -63,10 +64,8 @@ fn main() {
 
     //Send shaders to GLIUM wrappers for OpenGL
     let program = glium::Program::from_source(&display, vertex_shader_src, fragment_shader_src, None).unwrap();
-   
-    // Set uniform here to be used in the shader code for animating the triangle.
-    // The naiive approach would be to instead handle t in the event loop to update the vertex but that does not make much sense,
-    // We can place the handling and animating of the vertexes in different positions of the animations in the shader code to push that workload to the GPU
+  
+    // Set t
     let mut t: f32 = 0.0;
 
     //Set some callbacks for the Event Loop, this code basically handles the event loop for the window 
@@ -78,9 +77,22 @@ fn main() {
                     display.resize(window_size.into());
                 },
                 glium::winit::event::WindowEvent::RedrawRequested => {
-                    //Draw code
+                    // Draw code
                     t += 0.02;
-                    let x_off = t.sin() * 0.5;
+                    
+                    // Set uniform here to be used in the shader code for animating the triangle.
+                    // The naiive approach would be to instead handle t in the event loop to update the vertex but that does not make much sense,
+                    // We can place the handling and animating of the vertexes in different positions of the animations in the shader code to push that workload to the GPU
+                    let x = t.sin() * 0.5;
+
+                    let uniforms = uniform! { 
+                        matrix: [
+                            [1.0, 0.0, 0.0, 0.0],
+                            [0.0, 1.0, 0.0, 0.0],
+                            [0.0, 0.0, 1.0, 0.0],
+                            [x, 0.0, 0.0, 1.0f32]
+                        ]
+                    };
 
                     let mut target = display.draw();
                     target.clear_color(0.0, 0.0, 1.0, 1.0);
@@ -88,7 +100,7 @@ fn main() {
                     // We pass t here to the vertex shader using a uniform
                     // A uniform is a global variable whose value is set when we draw by passing its value to the draw function.
                     // The easiest way to do so is by using the uniform! macro
-                    target.draw(&vertex_buffer, &indices, &program, &uniform! { x: x_off }, &Default::default()).unwrap();
+                    target.draw(&vertex_buffer, &indices, &program, &uniforms, &Default::default()).unwrap();
                     target.finish().unwrap();
                 }
                 _ => (),
