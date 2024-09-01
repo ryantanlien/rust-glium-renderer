@@ -1,6 +1,6 @@
 use glium::Surface;
 
-use crate::teapot;
+use crate::glium_teapot;
 
 pub fn draw() {
     let event_loop = glium::winit::event_loop::EventLoop::builder()
@@ -10,10 +10,10 @@ pub fn draw() {
         .with_title("Glium tutorial #7")
         .build(&event_loop);
 
-    let positions = glium::VertexBuffer::new(&display, &teapot::VERTICES).unwrap();
-    let normals = glium::VertexBuffer::new(&display, &teapot::NORMALS).unwrap();
+    let positions = glium::VertexBuffer::new(&display, &glium_teapot::VERTICES).unwrap();
+    let normals = glium::VertexBuffer::new(&display, &glium_teapot::NORMALS).unwrap();
     let indices = glium::IndexBuffer::new(&display, glium::index::PrimitiveType::TrianglesList,
-                                        &teapot::INDICES).unwrap();
+                                        &glium_teapot::INDICES).unwrap();
 
     let vertex_shader_src = r#"
         #version 140

@@ -9,8 +9,8 @@ use obj::Obj;
 extern crate glium;
 
 mod triangle;
-mod teapot;
-mod draw_teapot;
+mod glium_teapot;
+mod glium_teapot_example;
 
 // Define a 2D vertex here
 #[derive(Copy, Clone, Debug)]
@@ -43,22 +43,13 @@ fn load_obj_file(file_path: &str) -> Obj {
 fn create_teapot() {
     let event_loop = glium::winit::event_loop::EventLoopBuilder::new().build().unwrap();
     let (window, display) = glium::backend::glutin::SimpleWindowBuilder::new().build(&event_loop);
-
-    let mut frame = display.draw();
-    frame.clear_color(0.0, 0.0, 1.0, 1.0);
-    frame.finish().unwrap();
     
     let obj_file = load_obj_file("models/obj/teapot.obj");
     
-    //My own potentially faulty code
-    // let shape: Vec<Vertex> = obj_file.vertices.into_iter().map(|v| Vertex::from(v)).collect();
-    // let indices = glium::index::NoIndices(glium::index::PrimitiveType::TrianglesList);
-    // let vertex_buffer = glium::VertexBuffer::new(&display, &shape).unwrap();
-    // let indices = glium::IndexBuffer::new(&display, glium::index::PrimitiveType::TrianglesList, &obj_file.indices).unwrap();
-
-    let positions = glium::VertexBuffer::new(&display, &teapot::VERTICES).unwrap();
-    let normals = glium::VertexBuffer::new(&display, &teapot::NORMALS).unwrap();
-    let indices = glium::IndexBuffer::new(&display, glium::index::PrimitiveType::TrianglesList, &teapot::INDICES).unwrap();
+    let shape: Vec<Vertex> = obj_file.vertices.into_iter().map(|v| Vertex::from(v)).collect();
+    let indices = glium::index::NoIndices(glium::index::PrimitiveType::TrianglesList);
+    let vertex_buffer = glium::VertexBuffer::new(&display, &shape).unwrap();
+    let indices = glium::IndexBuffer::new(&display, glium::index::PrimitiveType::TrianglesList, &obj_file.indices).unwrap();
 
     // Create empty texture
     let texture = glium::texture::Texture2d::empty(&display, 200, 200).unwrap();
@@ -68,6 +59,7 @@ fn create_teapot() {
 
     let program = glium::Program::from_source(&display, vertex_shader_src.as_str(), fragment_shader_src.as_str(), None).unwrap();
 
+    // TODO: This event loop is faulty
     let _ = event_loop.run(move |event, window_target| {
         match event {
             glium::winit::event::Event::WindowEvent { event, .. } => match event {
@@ -85,9 +77,9 @@ fn create_teapot() {
 
                     let uniforms = uniform! { 
                         matrix: [
-                            [1.0, 0.0, 0.0, 0.0],
-                            [0.0, 1.0, 0.0, 0.0],
-                            [0.0, 0.0, 1.0, 0.0],
+                            [0.01, 0.0, 0.0, 0.0],
+                            [0.0, 0.01, 0.0, 0.0],
+                            [0.0, 0.0, 0.01, 0.0],
                             [x, 0.0, 0.0, 1.0f32]
                         ],
                         tex: &texture
@@ -99,7 +91,7 @@ fn create_teapot() {
                     // We pass t here to the vertex shader using a uniform
                     // A uniform is a global variable whose value is set when we draw by passing its value to the draw function.
                     // The easiest way to do so is by using the uniform! macro
-                    target.draw((&positions, &normals), &indices, &program, &uniforms, &Default::default()).unwrap();
+                    target.draw(&vertex_buffer, &indices, &program, &uniforms, &Default::default()).unwrap();
                     target.finish().unwrap();
                 }
                 _ => (),
@@ -114,8 +106,11 @@ fn create_teapot() {
 
 // Note: Remember that matrices in OpenGL are in column-major order
 fn main() {
+
     // crate::triangle::create_triangle_with_colored_vertices();
-    // create_teapot();
-    crate::draw_teapot::draw();
+    // crate::glium_teapot_example::draw();
+
+    //My own implementation of viewing teapot with reading shaders from file and loading obj from file
+    create_teapot();
 }
 
