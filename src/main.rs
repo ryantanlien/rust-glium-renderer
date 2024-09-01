@@ -1,4 +1,6 @@
 use glium::Surface;
+use std::fs;
+use std::env;
 
 #[macro_use]
 extern crate glium;
@@ -7,13 +9,25 @@ extern crate glium;
 #[derive(Copy, Clone)]
 struct Vertex {
   position: [f32; 2],
-  color: [f32; 3] //Corresponds to vec3 RGB in GLSL
+  color: [f32; 3], //Corresponds to vec3 RGB in GLSL
+  tex_coords: [f32; 2]
 }
 implement_vertex!(Vertex, position, color);
 
-// Note: Remember that matrices in OpenGL are in column-major order
-fn main() {
+//OpenGL refresher
+//OpenGL's coordinate system for the viewport space (aka NDC space) is a square centered at coordinate vec3(0.0, 0.0, 0.0)
+//Camera is placed at z = 0, x-y plane.
+//Top-right-back of the cube is vec3(1.0, 1.0, 1.0). Bottom-left-back of the cube is (-1.0, -1.0, 0)
+//Now include color into each vertex as well, note that OpenGL interpolates colours between vertexes automatically
+fn construct_triangle_vectors() -> Vec<Vertex> {
+    return vec![
+        Vertex { position: [-0.5, -0.5], color: [1.0, 0.0, 0.0], tex_coords: [0.0, 0.0] },
+        Vertex { position: [0.0, 0.5], color: [0.0, 1.0, 0.0], tex_coords: [0.0, 0.0] },
+        Vertex { position: [0.5, -0.25], color: [0.0, 0.0, 1.0], tex_coords: [0.0, 0.0] }
+    ]
+}
 
+fn create_triangle_with_colored_vertices() {
     //Create Event Loop with winit crate and window with glium glutin re-export crate
     let event_loop = glium::winit::event_loop::EventLoopBuilder::new().build().unwrap();
     let (window, display) = glium::backend::glutin::SimpleWindowBuilder::new().build(&event_loop);
@@ -23,22 +37,17 @@ fn main() {
     frame.clear_color(0.0, 0.0, 1.0, 1.0);
     frame.finish().unwrap();
     
-    //OpenGL refresher
-    //OpenGL's coordinate system for the viewport space (aka NDC space) is a square centered at coordinate 0.0,0.0,0.0
-    //Camera is placed at z = 0, x-y plane.
-    //Top-right-back of the cube is  (1,1,1). Bottom-left-back of the cube is (-1,-1,0)
-    //Now include color into each vertex as well, note that OpenGL interpolates colours between vertexes automatically
-    let shape = vec![
-        Vertex { position: [-0.5, -0.5], color: [1.0, 0.0, 0.0] },
-        Vertex { position: [0.0, 0.5], color: [0.0, 1.0, 0.0] },
-        Vertex { position: [0.5, -0.25], color: [0.0, 0.0, 1.0] }
-    ];
+    let shape = construct_triangle_vectors();
 
     // Send vertexes to vertex buffer for faster access by GPU
     let vertex_buffer = glium::VertexBuffer::new(&display, &shape).unwrap();
 
     // Set rendering type for vertices
     let indices = glium::index::NoIndices(glium::index::PrimitiveType::TrianglesList);
+
+    // Create empty texture
+    let texture = glium::texture::Texture2d::empty(&display, 200, 200).unwrap();
+    
 
     // Set Vertex Shader, ideally should be located in it's own file
     // Send matrices to vertex shader via uniforms
@@ -50,6 +59,8 @@ fn main() {
 
         in vec2 position;
         in vec3 color;
+        in vec2 tex_coords;
+        out vec2 v_tex_coords;
         out vec3 vertex_color;
 
         uniform mat4 matrix;
@@ -57,6 +68,7 @@ fn main() {
         void main() {
             vec2 pos = position;
             vertex_color = color;
+            v_tex_coords = tex_coords;
             gl_Position = matrix * vec4(pos, 0.0, 1.0);
         }
     "#;
@@ -66,6 +78,10 @@ fn main() {
         #version 140
 
         in vec3 vertex_color;
+        in vec2 v_tex_coords;
+
+        uniform sampler2D tex;
+
         out vec4 color;
 
         void main() {
@@ -102,7 +118,8 @@ fn main() {
                             [0.0, 1.0, 0.0, 0.0],
                             [0.0, 0.0, 1.0, 0.0],
                             [x, 0.0, 0.0, 1.0f32]
-                        ]
+                        ],
+                        tex: &texture
                     };
 
                     let mut target = display.draw();
@@ -122,5 +139,10 @@ fn main() {
             _ => (),
         };
     });
+}
+
+// Note: Remember that matrices in OpenGL are in column-major order
+fn main() {
+    create_triangle_with_colored_vertices()
 }
 
