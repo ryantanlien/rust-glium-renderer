@@ -27,6 +27,10 @@ fn construct_triangle_vectors() -> Vec<Vertex> {
     ]
 }
 
+fn read_shader(shader_path: &str) -> String {
+    return fs::read_to_string(std::path::Path::new(&String::from(shader_path))).unwrap()
+}
+
 fn create_triangle_with_colored_vertices() {
     //Create Event Loop with winit crate and window with glium glutin re-export crate
     let event_loop = glium::winit::event_loop::EventLoopBuilder::new().build().unwrap();
@@ -54,43 +58,13 @@ fn create_triangle_with_colored_vertices() {
     // Execution is vertex shader -> fragment shader
     // Vertex shader outputs fragment color and other attributes to the fragment shader -> whatever we need in the fragment shader needs to be passed to the vertex shader
     // The passing of attributes from vertex shader to fragment shader is 
-    let vertex_shader_src = r#"
-        #version 140
-
-        in vec2 position;
-        in vec3 color;
-        in vec2 tex_coords;
-        out vec2 v_tex_coords;
-        out vec3 vertex_color;
-
-        uniform mat4 matrix;
-
-        void main() {
-            vec2 pos = position;
-            vertex_color = color;
-            v_tex_coords = tex_coords;
-            gl_Position = matrix * vec4(pos, 0.0, 1.0);
-        }
-    "#;
+    let vertex_shader_src = read_shader("shaders/default.vert");
 
     //Set Fragment Shader, ideally should be located in it's own file
-    let fragment_shader_src = r#"
-        #version 140
-
-        in vec3 vertex_color;
-        in vec2 v_tex_coords;
-
-        uniform sampler2D tex;
-
-        out vec4 color;
-
-        void main() {
-            color = vec4(vertex_color, 1.0);            
-        }
-    "#;
+    let fragment_shader_src = read_shader("shaders/default.frag");
 
     //Send shaders to GLIUM wrappers for OpenGL
-    let program = glium::Program::from_source(&display, vertex_shader_src, fragment_shader_src, None).unwrap();
+    let program = glium::Program::from_source(&display, vertex_shader_src.as_str(), fragment_shader_src.as_str(), None).unwrap();
   
     // Set t
     let mut t: f32 = 0.0;
