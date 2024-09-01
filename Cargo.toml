@@ -5,3 +5,4 @@ edition = "2021"
 
 [dependencies]
 glium = "0.35.0"
+obj-rs = "0.7.1"
