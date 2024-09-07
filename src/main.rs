@@ -20,7 +20,7 @@ struct Vertex {
   normal: [f32; 3],
   tex_coords: [f32; 2]
 }
-implement_vertex!(Vertex, position, color);
+implement_vertex!(Vertex, position, color, normal, tex_coords);
 
 //Converts from obj vertex to Vertex
 impl From<obj::Vertex> for Vertex {
@@ -54,10 +54,17 @@ fn create_teapot() {
     // Create empty texture
     let texture = glium::texture::Texture2d::empty(&display, 200, 200).unwrap();
 
-    let vertex_shader_src = read_shader("shaders/teapot.vert");
-    let fragment_shader_src = read_shader("shaders/teapot.frag");
+    // Default shaders
+    // let vertex_shader_src = read_shader("shaders/teapot.vert");
+    // let fragment_shader_src = read_shader("shaders/teapot.frag");
+
+    // Gouraud shading shaders
+    let vertex_shader_src = read_shader("shaders/teapot_gouraud.vert");
+    let fragment_shader_src = read_shader("shaders/teapot_gouraud.frag");
 
     let program = glium::Program::from_source(&display, vertex_shader_src.as_str(), fragment_shader_src.as_str(), None).unwrap();
+
+    let light = [-1.0, 0.4, 0.9f32];
 
     // TODO: This event loop is faulty
     let _ = event_loop.run(move |event, window_target| {
@@ -77,12 +84,13 @@ fn create_teapot() {
 
                     let uniforms = uniform! { 
                         matrix: [
-                            [0.01, 0.0, 0.0, 0.0],
-                            [0.0, 0.01, 0.0, 0.0],
-                            [0.0, 0.0, 0.01, 0.0],
+                            [0.05, 0.0, 0.0, 0.0],
+                            [0.0, 0.05, 0.0, 0.0],
+                            [0.0, 0.0, 0.05, 0.0],
                             [x, 0.0, 0.0, 1.0f32]
                         ],
-                        tex: &texture
+                        tex: &texture,
+                        u_light: light,
                     };
 
                     let mut target = display.draw();
