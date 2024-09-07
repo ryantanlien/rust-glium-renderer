@@ -92,14 +92,24 @@ fn create_teapot() {
                         tex: &texture,
                         u_light: light,
                     };
-
+    
+                    // Add depth testing here
+                    let params = glium::DrawParameters {
+                        depth: glium::Depth {
+                            test: glium::draw_parameters::DepthTest::IfLess,
+                            write: true,
+                            ..Default::default()
+                        },
+                        ..Default::default()
+                    };
+                    
                     let mut target = display.draw();
-                    target.clear_color(0.0, 0.0, 1.0, 1.0);
+                    target.clear_color_and_depth((0.0, 0.0, 1.0, 1.0), 1.0);
                     
                     // We pass t here to the vertex shader using a uniform
                     // A uniform is a global variable whose value is set when we draw by passing its value to the draw function.
                     // The easiest way to do so is by using the uniform! macro
-                    target.draw(&vertex_buffer, &indices, &program, &uniforms, &Default::default()).unwrap();
+                    target.draw(&vertex_buffer, &indices, &program, &uniforms, &params).unwrap();
                     target.finish().unwrap();
                 }
                 _ => (),
