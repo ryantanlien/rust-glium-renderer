@@ -66,7 +66,7 @@ fn create_teapot() {
 
     let light = [-1.0, 0.4, 0.9f32];
 
-    // TODO: This event loop is faulty
+
     let _ = event_loop.run(move |event, window_target| {
         match event {
             glium::winit::event::Event::WindowEvent { event, .. } => match event {
@@ -76,6 +76,25 @@ fn create_teapot() {
                 },
                 glium::winit::event::WindowEvent::RedrawRequested => {
                     // Draw code
+                    let mut target = display.draw();
+                    target.clear_color_and_depth((0.0, 0.0, 1.0, 1.0), 1.0);
+                    
+                    // Perspective Matrix and Aspect Ratio
+                    let perspective = {
+                        let (width, height) = target.get_dimensions();
+                        let aspect_ratio = height as f32 / width as f32;
+                        let fov: f32 = std::f32::consts::PI / 3.0;
+                        let zfar = 1024.0;
+                        let znear = 0.1;
+                        let f = 1.0 / (fov / 2.0).tan();
+
+                        [
+                            [f * aspect_ratio, 0.0, 0.0, 0.0],
+                            [0.0, f, 0.0, 0.0],
+                            [0.0, 0.0, (zfar + znear) / (zfar - znear), 1.0],
+                            [0.0, 0.0, -(2.0 * zfar * znear) / (zfar - znear), 0.0],
+                        ]
+                    };
                     
                     // Set uniform here to be used in the shader code for animating the triangle.
                     // The naiive approach would be to instead handle t in the event loop to update the vertex but that does not make much sense,
@@ -87,10 +106,11 @@ fn create_teapot() {
                             [0.05, 0.0, 0.0, 0.0],
                             [0.0, 0.05, 0.0, 0.0],
                             [0.0, 0.0, 0.05, 0.0],
-                            [x, 0.0, 0.0, 1.0f32]
+                            [x, 0.0, 2.0, 1.0f32]
                         ],
                         tex: &texture,
                         u_light: light,
+                        perspective : perspective
                     };
     
                     // Add depth testing here
@@ -103,8 +123,6 @@ fn create_teapot() {
                         ..Default::default()
                     };
                     
-                    let mut target = display.draw();
-                    target.clear_color_and_depth((0.0, 0.0, 1.0, 1.0), 1.0);
                     
                     // We pass t here to the vertex shader using a uniform
                     // A uniform is a global variable whose value is set when we draw by passing its value to the draw function.
