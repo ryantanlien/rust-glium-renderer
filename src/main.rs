@@ -120,6 +120,7 @@ fn create_teapot() {
                             write: true,
                             ..Default::default()
                         },
+                        // backface_culling: glium::draw_parameters::BackfaceCullingMode::CullClockwise,
                         ..Default::default()
                     };
                     
