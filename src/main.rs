@@ -101,6 +101,17 @@ fn create_teapot() {
                     // We can place the handling and animating of the vertexes in different positions of the animations in the shader code to push that workload to the GPU
                     let x = 0.0;
 
+                    // Remember that in CG most matrices are in column-major order
+                    // So matrix is actually 
+                    // 0.05 0.0 0.0 x
+                    // 0.0 0.05 0.0 0.0
+                    // 0.0 0.0 0.05 0.0
+                    // 0.0 0.0 2.0 1.0
+                    // in row major order
+
+                    // In column major order, order of transformations is inverse that of multiplication
+                    // So for transform: scale, rotate then translate, the order of multiplication is translate * rotate * scale * vector
+                    // In row major order, the order of multiplication is scale * rotate * translate * vector
                     let uniforms = uniform! { 
                         matrix: [
                             [0.05, 0.0, 0.0, 0.0],
