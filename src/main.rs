@@ -29,6 +29,40 @@ impl From<obj::Vertex> for Vertex {
     }
 }
 
+fn view_matrix(position: &[f32; 3], direction: &[f32;3], up: &[f32; 3]) -> [[f32;4]; 4] {
+    let f = {
+        let f = direction;
+        let len = f[0]*f[0] + f[1]*f[1] + f[2]*f[2];
+        let len = len.sqrt();
+        [f[0] / len, f[1] / len, f[2] / len]
+    };
+
+    let s = [up[1] * f[2] - up[2] * f[1],
+             up[2] * f[0] - up[0] * f[2],
+             up[0] * f[1] - up[1] * f[0]];
+
+    let s_norm = {
+        let len = s[0] * s[0] + s[1] * s[1] + s[2] * s[2];
+        let len = len.sqrt();
+        [s[0] / len, s[1] / len, s[2] / len]
+    };
+
+    let u = [f[1] * s_norm[2] - f[2] * s_norm[1],
+             f[2] * s_norm[0] - f[0] * s_norm[2],
+             f[0] * s_norm[1] - f[1] * s_norm[0]];
+    
+    let p = [-position[0] * s_norm[0] - position[1] * s_norm[1] - position[2] * s_norm[2],
+             -position[0] * u[0] - position[1] * u[1] - position[2] * u[2],
+             -position[0] * f[0] - position[1] * f[1] - position[2] * f[2]];
+
+    [
+        [s_norm[0], u[0], f[0], 0.0],
+        [s_norm[1], u[1], f[1], 0.0],
+        [s_norm[2], u[2], f[2], 0.0],
+        [p[0], p[1], p[2], 1.0]
+    ]
+}
+
 // TODO: Can we use generics here to accept other formats such as &String?
 fn read_shader(shader_path: &str) -> String {
     return fs::read_to_string(std::path::Path::new(&String::from(shader_path))).unwrap()
@@ -43,6 +77,7 @@ fn load_obj_file(file_path: &str) -> Obj {
 fn create_teapot() {
     let event_loop = glium::winit::event_loop::EventLoopBuilder::new().build().unwrap();
     let (window, display) = glium::backend::glutin::SimpleWindowBuilder::new().build(&event_loop);
+
     
     let obj_file = load_obj_file("models/obj/teapot.obj");
     
@@ -95,6 +130,8 @@ fn create_teapot() {
                             [0.0, 0.0, -(2.0 * zfar * znear) / (zfar - znear), 0.0],
                         ]
                     };
+
+                    let view = view_matrix(&[2.0, -1.0, 1.0], &[-2.0, 1.0, 1.0], &[0.0, 1.0, 0.0]);
                     
                     // Set uniform here to be used in the shader code for animating the triangle.
                     // The naiive approach would be to instead handle t in the event loop to update the vertex but that does not make much sense,
@@ -113,7 +150,7 @@ fn create_teapot() {
                     // So for transform: scale, rotate then translate, the order of multiplication is translate * rotate * scale * vector
                     // In row major order, the order of multiplication is scale * rotate * translate * vector
                     let uniforms = uniform! { 
-                        matrix: [
+                        model: [
                             [0.05, 0.0, 0.0, 0.0],
                             [0.0, 0.05, 0.0, 0.0],
                             [0.0, 0.0, 0.05, 0.0],
@@ -121,7 +158,8 @@ fn create_teapot() {
                         ],
                         tex: &texture,
                         u_light: light,
-                        perspective : perspective
+                        perspective : perspective,
+                        view: view
                     };
     
                     // Add depth testing here
@@ -131,7 +169,7 @@ fn create_teapot() {
                             write: true,
                             ..Default::default()
                         },
-                        backface_culling: glium::draw_parameters::BackfaceCullingMode::CullClockwise,
+                        // backface_culling: glium::draw_parameters::BackfaceCullingMode::CullClockwise,
                         ..Default::default()
                     };
                     
@@ -161,4 +199,5 @@ fn main() {
     //My own implementation of viewing teapot with reading shaders from file and loading obj from file
     create_teapot();
 }
+
 
